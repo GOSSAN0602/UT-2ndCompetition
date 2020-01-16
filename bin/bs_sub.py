@@ -68,8 +68,9 @@ sub['quality'] = y_preds
 sub.to_csv("./submission.csv", index=False)
 
 # plot feature importance
+import datetime
 feature_importances['average'] = feature_importances[[f'fold_{fold_n + 1}' for fold_n in range(NFOLDS)]].mean(axis=1)
 plt.figure(figsize=(16, 16))
 sns.barplot(data=feature_importances.sort_values(by='average', ascending=False), x='average', y='feature');
 plt.title('feature importance over {} folds average; score {}'.format(NFOLDS,mean_squared_error(train_y, y_oof)))
-plt.savefig('./figs/feature_importance.png')
+plt.savefig('./figs/feature_importance_{}.png'.format(datetime.datetime.today()))
