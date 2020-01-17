@@ -16,7 +16,8 @@ import seaborn as sns
 sns.set()
 
 # load data
-data_folder = '../input/'
+#data_folder = '../input/pH_comp/'
+data_folder = '../input/pH_critic_comp/'
 train = pd.read_csv(data_folder+'train.csv')
 train_y = train.loc[:,['quality']]
 train_x = train.drop('quality',axis=1)
