@@ -41,6 +41,7 @@ splits = kf.split(train_x, train_y)
 # epoch config
 n_epochs = 3000
 interval = 1
+batch_size = 128
 
 # for pred
 y_preds = np.zeros([NFOLDS, test_x.shape[0]])
@@ -56,7 +57,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(n_features, n_features*3)
         self.fc2 = nn.Linear(n_features*3, n_features*2)
         self.fc3 = nn.Linear(n_features*2, 1)
-        self.drop1 = nn.Dropout(p=0.2)
+        self.drop1 = nn.Dropout(p=0.5)
         self.drop2 = nn.Dropout(p=0.5)
 
     def forward(self, x):
@@ -67,18 +68,14 @@ class Net(nn.Module):
         x = torch.sigmoid(self.fc3(x))
         return x
 
-def get_minibatch(data, batch_size):
-    n_data = data.shape[0]
-    n_iter = int(n_data / batch_size)
-    return np.random.randint(n_data, size=(batch_size,n_iter))
-
 # train NN
 fig = plt.figure(figsize=(16, 9))
 for fold_n, (tr_idx, va_idx) in enumerate(splits):
     # get batch data
     tr_x, va_x = Variable(torch.from_numpy(train_x[tr_idx]).float(),requires_grad=True), Variable(torch.from_numpy(train_x[va_idx]).float(),requires_grad=True)
     tr_y, va_y = Variable(torch.from_numpy(train_y[tr_idx]).float()), Variable(torch.from_numpy(train_y[va_idx]).float())
-    minibatch_idx, n_iter = get_minibatch(tr_x, 2)
+    n_iter = int(tr_x.shape[0] / batch_size)+1
+    batch_idx = np.arange(tr_x.shape[0])
     net = Net(tr_x.shape[1])
     #optimizer = optim.SGD(net.parameters(), lr=0.01)
     #optimizer = optim.AdamW(net.parameters(), lr=0.001)
@@ -91,14 +88,15 @@ for fold_n, (tr_idx, va_idx) in enumerate(splits):
 
     # epoch
     for i in range(n_epochs):
+        batch_idx = np.random.permutation(batch_idx)
         net.train()
-        for iter, batch_idx in enumerate(minibatch_idx):
+        for iter in range(n_iter):
             optimizer.zero_grad()
-            output = net(tr_x[batch_idx])
-            loss = criterion(output, tr_y[batch_idx])
+            output = net(tr_x[batch_idx[iter*batch_size:(iter+1)*batch_size]])
+            loss = criterion(output, tr_y[batch_idx[iter*batch_size:(iter+1)*batch_size]])
             loss.backward()
             optimizer.step()
-            cos_lr_scheduler.step()
+        cos_lr_scheduler.step()
         if (i+1) % interval ==0:
             net.eval()
             loss_tr[int(i/interval)] = criterion(tr_y, net(tr_x)).item()
@@ -132,6 +130,5 @@ plt.title(f"Scaled MSE(oof): {mean_squared_error(mm.inverse_transform(train_y), 
 fig.savefig(f"./loss.png")
 
 # make submission
-import pdb;pdb.set_trace()
 sub['quality'] = y_preds.mean(axis=0)
-sub.to_csv("./submission.csv", index=False)
+sub.to_csv(f"./submission_{mean_squared_error(mm.inverse_transform(train_y), y_oof)}.csv", index=False)
