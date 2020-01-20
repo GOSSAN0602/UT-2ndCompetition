@@ -69,8 +69,8 @@ class Net(nn.Module):
 
 def get_minibatch(data, batch_size):
     n_data = data.shape[0]
-    n_iter = int(n_data / batch_size)
-    return np.random.randint(n_data, size=(batch_size,n_iter))
+    n_iter = n_data / batch_size
+    return randint(n_data, size=(batch_size,n_iter))
 
 # train NN
 fig = plt.figure(figsize=(16, 9))
@@ -78,7 +78,7 @@ for fold_n, (tr_idx, va_idx) in enumerate(splits):
     # get batch data
     tr_x, va_x = Variable(torch.from_numpy(train_x[tr_idx]).float(),requires_grad=True), Variable(torch.from_numpy(train_x[va_idx]).float(),requires_grad=True)
     tr_y, va_y = Variable(torch.from_numpy(train_y[tr_idx]).float()), Variable(torch.from_numpy(train_y[va_idx]).float())
-    minibatch_idx, n_iter = get_minibatch(tr_x, 2)
+    minibatch_idx, n_iter = get_minibatch(tr_x)
     net = Net(tr_x.shape[1])
     #optimizer = optim.SGD(net.parameters(), lr=0.01)
     #optimizer = optim.AdamW(net.parameters(), lr=0.001)
@@ -92,13 +92,12 @@ for fold_n, (tr_idx, va_idx) in enumerate(splits):
     # epoch
     for i in range(n_epochs):
         net.train()
-        for iter, batch_idx in enumerate(minibatch_idx):
-            optimizer.zero_grad()
-            output = net(tr_x[batch_idx])
-            loss = criterion(output, tr_y[batch_idx])
-            loss.backward()
-            optimizer.step()
-            cos_lr_scheduler.step()
+        optimizer.zero_grad()
+        output = net(tr_x)
+        loss = criterion(output, tr_y)
+        loss.backward()
+        optimizer.step()
+        cos_lr_scheduler.step()
         if (i+1) % interval ==0:
             net.eval()
             loss_tr[int(i/interval)] = criterion(tr_y, net(tr_x)).item()
