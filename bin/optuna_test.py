@@ -30,7 +30,7 @@ feature_importances = pd.DataFrame()
 feature_importances['feature'] = columns
 
 # make fold
-NFOLDS = 5
+NFOLDS = 6
 kf = KFold(n_splits=NFOLDS, shuffle=True, random_state=71)
 splits = kf.split(train_x, train_y)
 
