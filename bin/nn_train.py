@@ -12,6 +12,7 @@ from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
+import os
 import gc
 
 # load data
@@ -34,18 +35,20 @@ mm.fit(train_y)
 train_y = mm.transform(train_y)
 
 # make fold
-NFOLDS = 7
+NFOLDS = 6
 kf = KFold(n_splits=NFOLDS, shuffle=True, random_state=71)
 splits = kf.split(train_x, train_y)
 
 # epoch config
-n_epochs = 3000
+n_epochs = 2000
 interval = 1
 batch_size = 128
 
 # for pred
 y_preds = np.zeros([NFOLDS, test_x.shape[0]])
 y_oof = np.zeros(train_x.shape[0])
+y_oof_df = pd.DataFrame()
+y_oof_df['quality'] = y_oof
 tr_y_preds = np.zeros(train_x.shape[0])
 tr_score = 0.0
 va_score = 0.0
@@ -124,11 +127,16 @@ for fold_n, (tr_idx, va_idx) in enumerate(splits):
     del tr_x, tr_y, va_x, va_y
     gc.collect()
 
-print(f"Scaled MSE(oof): {mean_squared_error(mm.inverse_transform(train_y), y_oof)}")
-plt.legend()
-plt.title(f"Scaled MSE(oof): {mean_squared_error(mm.inverse_transform(train_y), y_oof)}")
-fig.savefig(f"./loss.png")
-
 # make submission
+oof_mse = mean_squared_error(mm.inverse_transform(train_y), y_oof)
+os.mkdir(f'./sub/{oof_mse}')
 sub['quality'] = y_preds.mean(axis=0)
-sub.to_csv(f"./submission_{mean_squared_error(mm.inverse_transform(train_y), y_oof)}.csv", index=False)
+sub.to_csv(f"./sub/{oof_mse}/submission.csv", index=False)
+y_oof_df['quality'] = y_oof
+y_oof_df.to_csv(f"./sub/{oof_mse}/y_oof.csv", index=False)
+
+# save fig
+print(f"Scaled MSE(oof): {oof_mse}")
+plt.legend()
+plt.title(f"Scaled MSE(oof): {oof_mse}")
+fig.savefig(f"./sub/{oof_mse}/loss.png")

@@ -3,9 +3,10 @@ from tqdm import tqdm
 from sklearn.metrics import mean_squared_error
 import sys
 sys.path.append('./')
-from libs.get_params import get_lgb_params
+from libs.optuna_get_params import get_lgb_params
 #from libs.feature_select import kolmogorov_smirnov, adversarial_del_list
-import lightgbm as lgb
+import lightgbm as lgb_original
+import optuna.integration.lightgbm as lgb
 import numpy as np
 import pandas as pd
 import tables
@@ -47,7 +48,11 @@ for fold_n, (tr_idx, va_idx) in enumerate(splits):
     dtrain = lgb.Dataset(tr_x, label=tr_y)
     dvalid = lgb.Dataset(va_x, label=va_y)
 
-    clf = lgb.train(params, dtrain, 3000, valid_sets=[dtrain,dvalid], verbose_eval=100, early_stopping_rounds=100)
+    best_params = {}
+    tuning_history = []
+    lgb.train(params, dtrain, valid_sets=[dtrain,dvalid], verbose_eval=0, best_params=best_params, tuning_history=tuning_history)
+
+    clf = lgb_original.train(best_params, dtrain, num_boost_round=20000, valid_sets=[dtrain,dvalid], early_stopping_rounds=1000, verbose_eval=1000)
 
     feature_importances[f'fold_{fold_n + 1}'] = clf.feature_importance()
 
