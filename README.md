@@ -1,1 +1,1 @@
-# GCI
+# UT-2nd Competition
